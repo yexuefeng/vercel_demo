@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .email-list {
+            list-style: none;
+            padding: 0;
+        }
+        .email-item {
+            background: white;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .email-subject {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .email-snippet {
+            color: #666;
+        }
+        .nav-bar {
+            margin-bottom: 20px;
+        }
+        .nav-bar a {
+            text-decoration: none;
+            color: #4CAF50;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="{{ url_for('index') }}">返回待办事项</a>
+        <a href="{{ url_for('logout') }}">退出登录</a>
+    </div>
+    
+    <h1>最近的邮件</h1>
+    
+    <ul class="email-list">
+        {% for email in emails %}
+        <li class="email-item">
+            <div class="email-subject">{{ email.subject }}</div>
+            <div class="email-snippet">{{ email.snippet }}</div>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html> 

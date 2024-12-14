@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录/注册 - Todo App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        .btn-primary {
+            background-color: #4285f4;
+            color: white;
+        }
+        .btn-google {
+            background-color: white;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: #333;
+        }
+        .google-icon {
+            width: 18px;
+            height: 18px;
+        }
+        .divider {
+            text-align: center;
+            margin: 1rem 0;
+            position: relative;
+        }
+        .divider::before,
+        .divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background-color: #ddd;
+        }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        .flash-messages {
+            margin-bottom: 1rem;
+        }
+        .flash-message {
+            padding: 0.75rem;
+            border-radius: 4px;
+            background-color: #f8d7da;
+            color: #721c24;
+            margin-bottom: 0.5rem;
+        }
+        .register-fields {
+            display: none;
+        }
+        .toggle-form {
+            text-align: center;
+            margin-top: 1rem;
+            color: #4285f4;
+            cursor: pointer;
+        }
+        .form-title {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="form-title" id="formTitle">登录</h1>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for message in messages %}
+                <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+        
+        <form id="authForm" method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="email">邮箱地址</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="register-fields">
+                <div class="form-group">
+                    <label for="name">昵称</label>
+                    <input type="text" id="name" name="name">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="submitBtn">登录</button>
+        </form>
+        
+        <div class="divider">或</div>
+        
+        <a href="{{ url_for('google_login') }}" class="btn btn-google">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" 
+                 alt="Google" class="google-icon">
+            使用 Google 账号登录
+        </a>
+        
+        <div class="toggle-form" id="toggleForm">
+            还没有账号？点击注册
+        </div>
+    </div>
+
+    <script>
+        const authForm = document.getElementById('authForm');
+        const formTitle = document.getElementById('formTitle');
+        const toggleForm = document.getElementById('toggleForm');
+        const registerFields = document.querySelector('.register-fields');
+        const submitBtn = document.getElementById('submitBtn');
+        const nameInput = document.getElementById('name');
+        
+        let isLoginMode = true;
+        
+        toggleForm.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            
+            if (isLoginMode) {
+                formTitle.textContent = '登录';
+                toggleForm.textContent = '还没有账号？点击注册';
+                submitBtn.textContent = '登录';
+                registerFields.style.display = 'none';
+                nameInput.required = false;
+                authForm.action = "{{ url_for('login') }}";
+            } else {
+                formTitle.textContent = '注册';
+                toggleForm.textContent = '已有账号？点击登录';
+                submitBtn.textContent = '注册';
+                registerFields.style.display = 'block';
+                nameInput.required = true;
+                authForm.action = "{{ url_for('register') }}";
+            }
+        });
+    </script>
+</body>
+</html> 
