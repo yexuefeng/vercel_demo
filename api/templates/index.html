@@ -361,6 +361,39 @@
                 width: 100%;
             }
         }
+
+        .date-header {
+            padding: 10px 0;
+            margin: 20px 0 10px 0;
+            border-bottom: 2px solid #eee;
+            color: #333;
+            font-size: 1.2rem;
+        }
+        
+        .todo-section {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .todo-section:first-child .date-header {
+            color: #2196F3;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 600px) {
+            .date-header {
+                font-size: 1.1rem;
+                padding: 8px 0;
+            }
+            
+            .todo-section {
+                margin-bottom: 20px;
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -430,19 +463,24 @@
         </div>
 
         {% for date, todos_by_priority in todos_by_date.items() %}
-        <div class="todo-section card">
-            <h2>
+        <div class="todo-section">
+            <h2 class="date-header">
                 {% if date == today|string %}
                     今天
                 {% else %}
-                    {{ date }}
+                    {% set date_obj = date.split('-') %}
+                    {% if date_obj|length == 3 %}
+                        {{ date_obj[0] }}年{{ date_obj[1] }}月{{ date_obj[2] }}日
+                    {% else %}
+                        {{ date }}
+                    {% endif %}
                 {% endif %}
             </h2>
             
             {% for priority in ['high', 'medium', 'low'] %}
                 {% if todos_by_priority[priority] %}
                     <ul class="todo-list">
-                        {% for todo in todos_by_priority[priority] %}
+                        {% for todo in todos_by_priority[priority]|sort(attribute='created_at', reverse=true) %}
                         <li class="todo-item {{ todo.priority }} {% if todo.complete %}completed{% endif %}">
                             <input type="checkbox" class="todo-checkbox" 
                                    onclick="window.location.href='{{ url_for('complete', todo_id=todo.id) }}'"
@@ -472,11 +510,50 @@
     </div>
 
     <script>
+        // 获取当前日期（考虑时区）
+        function getLocalDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // 设置日期选择器的最小值为今天
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate();
         const dueDateInput = document.getElementById('due_date');
-        dueDateInput.min = today;
-        dueDateInput.value = today;
+        if (dueDateInput) {
+            dueDateInput.min = today;
+            dueDateInput.value = today;  // 默认设置为今天
+        }
+
+        // 格式化日期显示
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            
+            // 移除时间部分，只比较日期
+            const dateWithoutTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            const todayWithoutTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            
+            if (dateWithoutTime.getTime() === todayWithoutTime.getTime()) {
+                return '今天';
+            }
+            
+            const tomorrow = new Date(todayWithoutTime);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            if (dateWithoutTime.getTime() === tomorrow.getTime()) {
+                return '明天';
+            }
+            
+            return dateStr;
+        }
+
+        // 更新所有日期显示
+        document.querySelectorAll('.todo-date').forEach(element => {
+            const dateStr = element.textContent.trim();
+            element.textContent = formatDate(dateStr);
+        });
 
         // 添加触摸反馈
         document.querySelectorAll('.todo-item').forEach(item => {

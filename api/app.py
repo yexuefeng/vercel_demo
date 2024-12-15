@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 import os
 import hashlib
 import base64
@@ -178,7 +178,7 @@ def register():
         
         # 验证输入
         if not email or not password:
-            flash('请填写所有必填字段')
+            flash('请填写��有必填字段')
             return redirect(url_for('register'))
         
         # 检查邮箱是否已注册
@@ -251,7 +251,7 @@ def oauth2callback():
                 })
                 user = existing_user
             else:
-                # 创建新的Google账户
+                # ���建新的Google账号
                 user = User(
                     email=user_info['email'],
                     name=user_info.get('name'),
@@ -335,11 +335,31 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    """处理所有路由"""
+    if path == '':
+        # 如果是根路径，检查是否已登录
+        if current_user.is_authenticated:
+            return index()
+        return redirect(url_for('login'))
+    
+    try:
+        # 尝试正常处理路由
+        return app.view_functions[path]()
+    except Exception as e:
+        logger.error(f"Error handling route {path}: {str(e)}")
+        return redirect(url_for('index'))
+
 @app.route('/')
 @login_required
 def index():
     todos = Todo.query.filter_by(user_id=current_user.id).all()
-    tags = Tag.query.filter_by(user_id=current_user.id).all()
+    
+    # 获取当前用户的时区时间
+    current_time = datetime.now()
+    today = current_time.date()
     
     # 按日期和优先级组织待办事项
     todos_by_date = {}
@@ -356,14 +376,19 @@ def index():
         
         todos_by_date[date_str][todo.priority].append(todo)
     
-    # 对日期进行排序
-    sorted_dates = sorted(todos_by_date.keys())
+    # 对日期进行降序排序（最新日期在前）
+    sorted_dates = sorted(todos_by_date.keys(), reverse=True)
     sorted_todos = {date: todos_by_date[date] for date in sorted_dates}
+    
+    # 确保"今天"的待办事项始终显示在最前面
+    today_str = today.strftime('%Y-%m-%d')
+    if today_str in sorted_todos:
+        today_todos = sorted_todos.pop(today_str)
+        sorted_todos = {today_str: today_todos, **sorted_todos}
     
     return render_template('index.html', 
                          todos_by_date=sorted_todos,
-                         today=date.today(),
-                         tags=tags)
+                         today=today)
 
 @app.route('/add', methods=['POST'])
 @login_required
@@ -371,12 +396,14 @@ def add():
     title = request.form.get('title')
     due_date_str = request.form.get('due_date')
     priority = request.form.get('priority', 'medium')
-    tag_id = request.form.get('tag_id')  # 获取标签ID
+    tag_id = request.form.get('tag_id')
     
     if title and due_date_str:
         try:
+            # 解析日期字符串
             due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
             
+            # 检查是否是过去的日期
             if due_date < date.today():
                 flash('不能选择过去的日期')
                 return redirect(url_for('index'))
@@ -391,7 +418,8 @@ def add():
             db.session.add(new_todo)
             db.session.commit()
             
-        except ValueError:
+        except ValueError as e:
+            logger.error(f"Date parsing error: {str(e)}")
             flash('日期格式无效')
     
     return redirect(url_for('index'))
@@ -482,4 +510,4 @@ if __name__ == '__main__':
         logger.error(f"Failed to initialize database: {str(e)}")
         exit(1)
     
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=False, host='0.0.0.0')  # 生产环境关闭 debug 模式
